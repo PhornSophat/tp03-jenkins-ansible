@@ -61,19 +61,19 @@ pipeline {
             }
         }
 
+        stage('Build Frontend') {
+            steps {
+                dir('tp03-2026') {
+                    sh 'npm run build'
+                }
+            }
+        }
+
         stage('Run Tests') {
             steps {
                 dir('tp03-2026') {
                     sh 'DB_CONNECTION=sqlite DB_DATABASE=$WORKSPACE/tp03-2026/database/database.sqlite php artisan migrate:fresh --force'
                     sh 'DB_CONNECTION=sqlite DB_DATABASE=$WORKSPACE/tp03-2026/database/database.sqlite php artisan test --compact --log-junit storage/test-results/junit.xml'
-                }
-            }
-        }
-
-        stage('Build Frontend') {
-            steps {
-                dir('tp03-2026') {
-                    sh 'npm run build'
                 }
             }
         }
