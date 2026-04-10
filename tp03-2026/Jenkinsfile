@@ -28,6 +28,7 @@ pipeline {
                 dir('tp03-2026') {
                     sh 'cp -n .env.example .env || true'
                     sh 'mkdir -p "$COMPOSER_CACHE_DIR" "$NPM_CONFIG_CACHE" storage/test-results'
+                    sh 'mkdir -p database && touch database/database.sqlite'
                     sh 'php -v'
                     sh 'composer --version'
                     sh 'node -v'
@@ -63,7 +64,8 @@ pipeline {
         stage('Run Tests') {
             steps {
                 dir('tp03-2026') {
-                    sh 'php artisan test --compact --log-junit storage/test-results/junit.xml'
+                    sh 'DB_CONNECTION=sqlite DB_DATABASE=$WORKSPACE/tp03-2026/database/database.sqlite php artisan migrate:fresh --force'
+                    sh 'DB_CONNECTION=sqlite DB_DATABASE=$WORKSPACE/tp03-2026/database/database.sqlite php artisan test --compact --log-junit storage/test-results/junit.xml'
                 }
             }
         }
