@@ -1,0 +1,61 @@
+FROM php:8.3-fpm
+
+ENV DEBIAN_FRONTEND=noninteractive
+ENV COMPOSER_HOME=/home/jenkins/.composer
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ansible \
+    ca-certificates \
+    curl \
+    git \
+    libfreetype6-dev \
+    libjpeg62-turbo-dev \
+    libonig-dev \
+    libpng-dev \
+    libsqlite3-dev \
+    libxml2-dev \
+    libzip-dev \
+    default-jre-headless \
+    nodejs \
+    npm \
+    openssh-client \
+    openssh-server \
+    openssl \
+    sshpass \
+    unzip \
+    zip \
+    && docker-php-ext-configure gd --with-freetype --with-jpeg \
+    && docker-php-ext-install -j"$(nproc)" bcmath gd mbstring pdo_mysql pdo_sqlite xml zip \
+    && mkdir -p /var/run/sshd \
+    && sed -i 's/^#\?PermitRootLogin .*/PermitRootLogin no/' /etc/ssh/sshd_config \
+    && sed -i 's/^#\?PasswordAuthentication .*/PasswordAuthentication no/' /etc/ssh/sshd_config \
+    && sed -i 's/^#\?PubkeyAuthentication .*/PubkeyAuthentication yes/' /etc/ssh/sshd_config \
+    && echo 'PubkeyAcceptedAlgorithms +ssh-rsa' >> /etc/ssh/sshd_config \
+    && sed -i 's|^#\?AuthorizedKeysFile .*|AuthorizedKeysFile .ssh/authorized_keys|' /etc/ssh/sshd_config \
+    && sed -i 's/^#\?AllowUsers .*/AllowUsers jenkins/' /etc/ssh/sshd_config \
+    && sed -i 's/^#\?ChallengeResponseAuthentication .*/ChallengeResponseAuthentication no/' /etc/ssh/sshd_config \
+    && sed -i 's/^#\?UsePAM .*/UsePAM no/' /etc/ssh/sshd_config \
+    && sed -i 's/^#\?X11Forwarding .*/X11Forwarding no/' /etc/ssh/sshd_config \
+    && sed -i 's/^#\?PrintMotd .*/PrintMotd no/' /etc/ssh/sshd_config \
+    && sed -i 's/^#\?Subsystem\s\+sftp\s\+.*/Subsystem sftp internal-sftp/' /etc/ssh/sshd_config \
+    && useradd --create-home --shell /bin/bash jenkins \
+    && passwd -d jenkins \
+    && mkdir -p /home/jenkins/.ssh \
+    && mkdir -p /home/jenkins/agent \
+    && chown -R jenkins:jenkins /home/jenkins \
+    && chmod 700 /home/jenkins/.ssh \
+    && chmod 755 /home/jenkins/agent \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY --from=composer:2 /usr/bin/composer /usr/local/bin/composer
+COPY entrypoint.sh /usr/local/bin/entrypoint.sh
+
+RUN chmod +x /usr/local/bin/entrypoint.sh
+
+WORKDIR /home/jenkins/agent
+
+EXPOSE 22
+
+ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
+
+CMD ["/usr/sbin/sshd", "-D", "-e"]
