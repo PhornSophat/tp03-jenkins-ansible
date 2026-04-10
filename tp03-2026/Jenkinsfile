@@ -25,51 +25,63 @@ pipeline {
 
         stage('Prepare Environment') {
             steps {
-                sh 'cp -n .env.example .env || true'
-                sh 'mkdir -p "$COMPOSER_CACHE_DIR" "$NPM_CONFIG_CACHE" storage/test-results'
-                sh 'php -v'
-                sh 'composer --version'
-                sh 'node -v'
-                sh 'npm -v'
+                dir('tp03-2026') {
+                    sh 'cp -n .env.example .env || true'
+                    sh 'mkdir -p "$COMPOSER_CACHE_DIR" "$NPM_CONFIG_CACHE" storage/test-results'
+                    sh 'php -v'
+                    sh 'composer --version'
+                    sh 'node -v'
+                    sh 'npm -v'
+                }
             }
         }
 
         stage('Install PHP Dependencies') {
             steps {
-                sh 'composer install --no-interaction --prefer-dist --optimize-autoloader --no-progress'
+                dir('tp03-2026') {
+                    sh 'composer install --no-interaction --prefer-dist --optimize-autoloader --no-progress'
+                }
             }
         }
 
         stage('Install JS Dependencies') {
             steps {
-                sh 'npm ci --prefer-offline --no-audit'
+                dir('tp03-2026') {
+                    sh 'npm ci --prefer-offline --no-audit'
+                }
             }
         }
 
         stage('Generate App Key') {
             steps {
-                sh 'php artisan key:generate --force'
+                dir('tp03-2026') {
+                    sh 'php artisan key:generate --force'
+                }
             }
         }
 
         stage('Run Tests') {
             steps {
-                sh 'php artisan test --compact --log-junit storage/test-results/junit.xml'
+                dir('tp03-2026') {
+                    sh 'php artisan test --compact --log-junit storage/test-results/junit.xml'
+                }
             }
         }
 
         stage('Build Frontend') {
             steps {
-                sh 'npm run build'
+                dir('tp03-2026') {
+                    sh 'npm run build'
+                }
             }
         }
     }
 
     post {
         always {
-            archiveArtifacts artifacts: 'storage/logs/*.log', allowEmptyArchive: true
-            junit testResults: 'storage/test-results/junit.xml', allowEmptyResults: true
-            sh 'rm -rf node_modules vendor || true'
+            archiveArtifacts artifacts: 'tp03-2026/storage/logs/*.log', allowEmptyArchive: true
+            junit testResults: 'tp03-2026/storage/test-results/junit.xml', allowEmptyResults: true
+            sh 'rm -rf tp03-2026/node_modules tp03-2026/vendor || true'
         }
     }
 }
